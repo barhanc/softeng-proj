@@ -10,6 +10,13 @@ from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_har
 
 class ClusterModule:
 
+    desc = """
+Unsupervised clustering.
+
+Machine learning technique that groups similar data points together without using labeled data. It
+identifies patterns and structures within the data to create clusters based on the intrinsic
+properties and relationships among the data points."""
+
     models = {
         "DBSCAN": {
             "model": DBSCAN,

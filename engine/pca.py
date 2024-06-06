@@ -3,60 +3,45 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 from sklearn.decomposition import PCA
+from matplotlib.figure import Figure
 
 
 class PCAModule:
-    @classmethod
-    def pca(self, X: pd.DataFrame):
-        pass
+
+    desc = """
+Principal component analysis (PCA).
+
+Linear dimensionality reduction using Singular Value Decomposition of the data to project it to a
+lower dimensional space. The input data is centered but not scaled for each feature before applying
+the SVD."""
 
     @classmethod
-    def perform_pca(self, X: pd.DataFrame) -> tuple[np.ndarray, np.ndarray, pd.DataFrame]:
+    def xvar(self, X: pd.DataFrame) -> np.ndarray:
         """
-        Perform Principal Component Analysis (PCA) on the given DataFrame.
-
-        Parameters:
-        X (pd.DataFrame): The input DataFrame with features as columns.
-
-        Returns:
-        principal_components (np.ndarray): The transformed data in the principal component space.
-        explained_variance (np.ndarray): The explained variance ratio for each principal component.
-        loadings (pd.DataFrame): The loadings matrix where each column represents a principal component
-                                 and each row represents the contribution of the original feature to that component.
+        Returns explained variance ratio for each principal component of the `X` data.
         """
-
-        size = len(X.columns)
-        pca = PCA()
-
-        principal_components = pca.fit_transform(X)
-        explained_variance = pca.explained_variance_ratio_
-        loadings = pd.DataFrame(pca.components_.T, columns=[f"PC{i+1}" for i in range(size)], index=X.columns)
-
-        return principal_components, explained_variance, loadings
+        pca = PCA().fit(X)
+        return pca.explained_variance_ratio_
 
     @classmethod
-    def plot_explained_variance(self, explained_variance):
+    def visualize_xvar(self, X: pd.DataFrame, fig: Figure) -> None:
+        """Visualize the explained variance and cumulative explained variance by principal components
+
+        Args:
+            X: Data set. Shape (n_samples, n_features).
+            fig: Matplotlib figure to plot on.
         """
-        Creates a bar plot to visualize the explained variance and cumulative explained variance by principal components.
-
-        Parameters:
-        explained_variance (np.ndarray): Array containing the explained variance ratio for each principal component.
-
-        Returns:
-        plt.Figure: A matplotlib figure object with the plot.
-        """
-
-        fig, ax = plt.subplots()
-        n_components = len(explained_variance)
-
-        ax.bar(range(1, n_components + 1), np.cumsum(explained_variance), label="Cumulative Variance", color="green")
-        bars = ax.bar(range(1, n_components + 1), explained_variance, label="Variance", color="red")
+        xvar = self.xvar(X)
+        n = xvar.size
+        ax = fig.gca()
+        ax.plot(range(n), np.cumsum(xvar), label="Cumulative Variance", marker=".")
+        bars = ax.bar(range(n), xvar, label="Variance", color="#348ABD")
 
         # Adding numerical labels
         for bar in bars:
             height = bar.get_height()
             ax.annotate(
-                f"{height:.2f}",
+                f"{height*100:.2f}%",
                 xy=(bar.get_x() + bar.get_width() / 2, height),
                 xytext=(0, 3),
                 textcoords="offset points",
@@ -64,57 +49,10 @@ class PCAModule:
                 va="bottom",
             )
 
-        ax.set_xlabel("Principal Components")
+        ax.set_xlabel("Principal Component")
         ax.set_ylabel("Explained Variance Ratio")
-        ax.set_title("Explained Variance by Principal Components")
-        ax.set_xticks(range(1, n_components + 1))
+        ax.set_xticks(range(n))
         ax.legend()
-        return fig
-
-    @classmethod
-    def most_impactful_features(self, loadings, top_n=5):
-        """
-        Identifies the most impactful features for each principal component.
-
-        Parameters:
-        loadings (pd.DataFrame): Loadings of the PCA components.
-        top_n (int): Number of top features to select for each principal component.
-
-        Returns:
-        pd.DataFrame: A DataFrame with the most impactful features for each principal component.
-        """
-        impactful_features = pd.DataFrame()
-
-        for col in loadings.columns:
-            # Take the absolute value of the loadings to find the most impactful features
-            sorted_features = loadings[col].abs().sort_values(ascending=False).head(top_n)
-            impactful_features[col] = sorted_features.index
-
-        return impactful_features
-
-    @classmethod
-    def plot_impactful_features(self, loadings):
-        """
-        Creates a bar plot to visualize the magnitude of the loadings for each feature.
-
-        Parameters:
-        loadings (pd.DataFrame): Loadings of the PCA components.
-
-        Returns:
-        fig: A matplotlib figure object with the plot.
-        """
-        fig, ax = plt.subplots(figsize=(10, 8))
-        loadings_plot = loadings.abs().sort_values(by=loadings.columns[0], ascending=False)
-
-        loadings_plot.plot(kind="bar", ax=ax, colormap="viridis")
-
-        ax.set_title("Magnitude of Loadings for Each Feature")
-        ax.set_xlabel("Features")
-        ax.set_ylabel("Loading Magnitude")
-        plt.xticks(rotation=45, ha="right")
-        plt.tight_layout()
-
-        return fig
 
     @classmethod
     def visualize_selected_components(self, pca_transformed, loadings, components, top_n_features=5):
@@ -182,44 +120,6 @@ class PCAModule:
         plt.grid()
         plt.axhline(0, color="grey", lw=0.5)
         plt.axvline(0, color="grey", lw=0.5)
-        plt.tight_layout()
-
-        return fig
-
-    @classmethod
-    def plot_impactful_features_v2(self, loadings, top_n_features=5):
-        """
-        Creates a bar plot to visualize the impact of each feature on the principal components.
-
-        Parameters:
-        loadings (pd.DataFrame): Loadings of the PCA components.
-        top_n_features (int): Number of top features to plot for each principal component.
-
-        Returns:
-        fig: A matplotlib figure object with the plot.
-        """
-        # Create a figure and axis
-        fig, ax = plt.subplots(figsize=(12, 8))
-
-        # Plot the impact of each feature on the principal components
-        for i, component in enumerate(loadings.columns):
-            # Get the top n features for this component, sorted by absolute impact
-            sorted_loadings = loadings[component].abs().sort_values(ascending=False).head(top_n_features)
-            sorted_loadings = loadings.loc[sorted_loadings.index, component]
-
-            # Create a bar plot for the current component
-            ax.bar(
-                [f"{feature} ({component})" for feature in sorted_loadings.index],
-                sorted_loadings.values,
-                label=f"PC{i+1}",
-            )
-
-        # Set the labels and title
-        ax.set_xlabel("Principal Components and Features")
-        ax.set_ylabel("Loading Magnitude")
-        ax.set_title("Impact of Features on Principal Components")
-        ax.legend()
-        plt.xticks(rotation=90)
         plt.tight_layout()
 
         return fig
