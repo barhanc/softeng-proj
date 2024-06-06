@@ -321,7 +321,39 @@ class App:
 
         @ui.page("/cluster")
         def page_cluster():
+            columns: list[str] = []
+            exclude: bool = False
+
+            def select_columns():
+                def on_click():
+                    nonlocal columns, exclude
+                    columns = col.value
+                    exclude = {"Include": False, "Exclude": True}[met.value]
+                    if exclude or len(columns) >= 2:
+                        refresh()
+                    else:
+                        ui.notify(f"At least 2 columns must be selected")
+
+                select_columns_container.clear()
+                with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
+                    with ui.row():
+                        ui.button("", icon="check", on_click=on_click)
+                        ui.label("Select columns")
+                    met = ui.select(["Include", "Exclude"], value="Include")
+                    col = ui.select([col for col in self.state.df.columns], multiple=True)
+
+            def refresh():
+                pass
+
             ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back())
+
+            if self.state.df is None:
+                ui.notify("Data has not been uploaded")
+                return
+
+            select_columns_container = ui.element()
+
+            select_columns()
 
         page_preprocess()
 

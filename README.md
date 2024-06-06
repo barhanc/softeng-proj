@@ -1,3 +1,9 @@
+Simple application for exploratory data analysis (mainly PCA and clustering) created using nicegui
+and scikit-learn Python libraries.
+
+![](/docs/f1.png)
+![](/docs/f2.png)
+
 # Installation
 
 ```shell
