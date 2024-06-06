@@ -1,8 +1,12 @@
-Simple application for exploratory data analysis (mainly PCA and clustering) created using nicegui
-and scikit-learn Python libraries.
+# Brief description
 
-![](/docs/f1.png)
-![](/docs/f2.png)
+Simple browser application for exploratory data analysis (mainly PCA and unsupervised clustering)
+written as a project for Software Engineering course at AGH University. We used only Python with
+scikit-learn and nicegui libraries.
+
+![](/docs/img1.png)
+![](/docs/img2.png)
+![](/docs/img3.png)
 
 # Installation
 
@@ -15,6 +19,19 @@ $ source venv/bin/activate
 (venv) $ python3 app.py
 ```
 
-To package as a one-file executable: in file `app.py` change `reload=True` to `reload=False` in
-`ui.run(...)` and depending on whether you want a native or browse app set `native=True` or
-`native=False`. See: [here](https://nicegui.io/documentation/section_configuration_deployment).
+To package as a one-file executable browser application:
+* make sure that arg `native` is set to `False` in `ui.run(...)` function in file `app.py`
+* make sure that arg `reload` is set to `False` in `ui.run(...)` function in file `app.py`
+* if you are building for macOS add the following lines to `app.py`
+  ```python
+  # macOS packaging support
+  from multiprocessing import freeze_support  # noqa
+  freeze_support()  # noqa
+  ```
+* execute
+  ```shell
+  $ nicegui-pack --onefile --name "myapp" app.py
+  ```
+
+For other possible packaging options see: 
+[nicegui documentation](https://nicegui.io/documentation/section_configuration_deployment).

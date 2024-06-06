@@ -2,9 +2,15 @@
 NOTE: THIS CODE IS UNSAFE GARBAGE BUT CODING GUIs IS GARBAGE SO IT FITS
 """
 
-import numpy as np
+# # macOS packaging support
+# from multiprocessing import freeze_support  # noqa
+
+# freeze_support()  # noqa
+
+import numpy
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.backends.backend_svg
 
 plt.style.use("ggplot")
 
@@ -366,7 +372,7 @@ class App:
 
     def mainloop(self):
         self.main()
-        ui.run(reload=True, port=native.find_open_port(), title="App")
+        ui.run(reload=True, native=False, port=native.find_open_port(), title="App")
 
 
 App().mainloop()
