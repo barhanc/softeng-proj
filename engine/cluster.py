@@ -20,89 +20,87 @@ properties and relationships among the data points."""
     models = {
         "DBSCAN": {
             "model": DBSCAN,
-            "docstr": """DBSCAN - Density-Based Spatial Clustering of Applications with Noise. Finds
-core samples of high density and expands clusters from them. Good for data which contains clusters
-of similar density.
-""",
+            "docstr": """
+DBSCAN - Density-Based Spatial Clustering of Applications with Noise. Finds core samples of high
+density and expands clusters from them. Good for data which contains clusters
+of similar density.""",
             "kwargs": {
-                "eps": """eps: float, default=0.5
+                "eps": """
+eps: float, default=0.5
 
-The maximum distance between two samples for one to be considered as in the neighborhood of the 
+The maximum distance between two samples for one to be considered as in the neighborhood of the
 other. This is not a maximum bound on the distances of points within a cluster. This is the most 
-important DBSCAN parameter to choose appropriately for your data set and distance function.
-""",
-                "min_sampes": """min_samples: int, default=5
+important DBSCAN parameter to choose appropriately for your data set and distance function.""",
+                "min_sampes": """
+min_samples: int, default=5
 
 The number of samples (or total weight) in a neighborhood for a point to be considered as a core 
 point. This includes the point itself. If min_samples is set to a higher value, DBSCAN will find 
-denser clusters, whereas if it is set to a lower value, the found clusters will be more sparse.
-""",
-                "metric": """metric: str, default='euclidean'
+denser clusters, whereas if it is set to a lower value, the found clusters will be more sparse.""",
+                "metric": """
+metric: str, default='euclidean'
 
 The metric to use when calculating distance between instances in a feature array. It must be one of 
-the 'cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'.
-""",
+the 'cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'.""",
             },
         },
         "OPTICS": {
             "model": OPTICS,
-            "docstr": """OPTICS (Ordering Points To Identify the Clustering Structure), closely 
-related to DBSCAN, finds core sample of high density and expands clusters from them [1]. Unlike
-DBSCAN, keeps cluster hierarchy for a variable neighborhood radius. Better suited for usage on large
-datasets than the current sklearn implementation of DBSCAN.
+            "docstr": """
+OPTICS (Ordering Points To Identify the Clustering Structure), closely related to DBSCAN, finds core
+sample of high density and expands clusters from them [1]. Unlike DBSCAN, keeps cluster hierarchy
+for a variable neighborhood radius. Better suited for usage on large datasets than the current
+sklearn implementation of DBSCAN.
 
 [1] Ankerst, Mihael, Markus M. Breunig, Hans-Peter Kriegel, and Jörg Sander. “OPTICS: ordering
-points to identify the clustering structure.” ACM SIGMOD Record 28, no. 2 (1999): 49-60.
-""",
+points to identify the clustering structure.” ACM SIGMOD Record 28, no. 2 (1999): 49-60.""",
             "kwargs": {
-                "min_samples": """min_samples: int > 1 or float between 0 and 1, default=5
+                "min_samples": """
+min_samples: int > 1 or float between 0 and 1, default=5
 
 The number of samples in a neighborhood for a point to be considered as a core point. Also, up and
 down steep regions can't have more than min_samples consecutive non-steep points. Expressed as an
-absolute number or a fraction of the number of samples (rounded to be at least 2).
-""",
-                "max_eps": """max_eps: float, default=np.inf
+absolute number or a fraction of the number of samples (rounded to be at least 2).""",
+                "max_eps": """
+max_eps: float, default=np.inf
 
 The maximum distance between two samples for one to be considered as in the neighborhood of the
 other. Default value of np.inf will identify clusters across all scales; reducing max_eps will
-result in shorter run times.
-""",
-                "metric": """metric: str, default='minkowski'
+result in shorter run times.""",
+                "metric": """
+metric: str, default='minkowski'
 
 Metric to use for distance computation. It must be one of  the 'cityblock', 'cosine', 'euclidean',
-'l1', 'l2', 'manhattan'.
-""",
+'l1', 'l2', 'manhattan'.""",
             },
         },
         "Agglomerative": {
             "model": AgglomerativeClustering,
-            "docstr": """Agglomerative Clustering recursively merges pair of clusters of sample 
-data; uses linkage distance.
-""",
+            "docstr": """
+Agglomerative Clustering recursively merges pair of clusters of sample data; uses linkage distance.""",
             "kwargs": {
-                "n_clusters": """n_clusters: int, default=2
+                "n_clusters": """
+n_clusters: int, default=2
 
-The number of clusters to find.
-""",
-                "metric": """metric: str, default="euclidean"
+The number of clusters to find.""",
+                "metric": """
+metric: str, default="euclidean"
 
-Metric used to compute the linkage. Can be 'euclidean', 'l1', 'l2', 'manhattan', 'cosine'.
-""",
+Metric used to compute the linkage. Can be 'euclidean', 'l1', 'l2', 'manhattan', 'cosine'.""",
             },
         },
         "KMeans": {
             "model": KMeans,
-            "docstr": """The KMeans algorithm clusters data by trying to separate samples in n 
-groups of equal variance, minimizing a criterion known as the inertia or within-cluster
-sum-of-squares (see below). This algorithm requires the number of clusters to be specified. It
-scales well to large numbers of samples and has been used across a large range of application areas
-in many different fields.
-""",
+            "docstr": """
+The KMeans algorithm clusters data by trying to separate samples in n groups of equal variance,
+minimizing a criterion known as the inertia or within-cluster sum-of-squares (see below). This
+algorithm requires the number of clusters to be specified. It scales well to large numbers of
+samples and has been used across a large range of application areas in many different fields.""",
             "kwargs": {
-                "n_clusters": """n_clusters: int, default=8
+                "n_clusters": """
+n_clusters: int, default=8
 
-The number of clusters to form as well as the number of centroids to generate.
-""",
+The number of clusters to form as well as the number of centroids to generate.""",
             },
         },
     }
@@ -110,36 +108,35 @@ The number of clusters to form as well as the number of centroids to generate.
     scores = {
         "Davies-Bouldin": {
             "score": davies_bouldin_score,
-            "docstr": """The Davies-Bouldin score is defined as the average similarity measure of 
-each cluster with its most similar cluster, where similarity is the ratio of within-cluster
-distances to between-cluster distances. Thus, clusters which are farther apart and less dispersed
-will result in a better score.
+            "docstr": """
+The Davies-Bouldin score is defined as the average similarity measure of each cluster with its most
+similar cluster, where similarity is the ratio of within-cluster distances to between-cluster
+distances. Thus, clusters which are farther apart and less dispersed will result in a better score.
 
-The minimum score is zero, with lower values indicating better clustering.
-""",
+The minimum score is zero, with lower values indicating better clustering.""",
         },
         "Silhouette": {
             "score": silhouette_score,
-            "docstr": """The Silhouette Coefficient is calculated using the mean intra-cluster 
-distance (a) and the mean nearest-cluster distance (b) for each sample. The Silhouette Coefficient
-for a sample is (b - a) / max(a, b). To clarify, b is the distance between a sample and the nearest
-cluster that the sample is not a part of. Note that Silhouette Coefficient is only defined if number
-of labels is 2 <= n_labels <= n_samples - 1. 
+            "docstr": """
+The Silhouette Coefficient is calculated using the mean intra-cluster distance (a) and the mean
+nearest-cluster distance (b) for each sample. The Silhouette Coefficient for a sample is (b - a) /
+max(a, b). To clarify, b is the distance between a sample and the nearest cluster that the sample is
+not a part of. Note that Silhouette Coefficient is only defined if number of labels is 2 <= n_labels
+<= n_samples - 1. 
 
 The best value is 1 and the worst value is -1. Values near 0 indicate overlapping clusters. Negative
 values generally indicate that a sample has been assigned to the wrong cluster, as a different
-cluster is more similar.
-""",
+cluster is more similar.""",
         },
         "Calinski-Harabasz": {
             "score": calinski_harabasz_score,
-            "docstr": """The Calinski-Harabasz index is the ratio of the sum of between-clusters 
-dispersion and of within-cluster dispersion for all clusters (where dispersion is defined as the sum
-of distances squared).
+            "docstr": """
+The Calinski-Harabasz index is the ratio of the sum of between-clusters dispersion and of
+within-cluster dispersion for all clusters (where dispersion is defined as the sum of distances
+squared).
 
 The score is higher when clusters are dense and well separated, which relates to a standard concept
-of a cluster.
-""",
+of a cluster.""",
         },
     }
 

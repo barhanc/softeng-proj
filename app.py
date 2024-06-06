@@ -325,22 +325,26 @@ class App:
             exclude: bool = False
 
             def select_columns():
-                def on_click():
-                    nonlocal columns, exclude
-                    columns = col.value
-                    exclude = {"Include": False, "Exclude": True}[met.value]
-                    if exclude or len(columns) >= 2:
-                        refresh()
-                    else:
-                        ui.notify(f"At least 2 columns must be selected")
-
                 select_columns_container.clear()
                 with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
-                    with ui.row():
-                        ui.button("", icon="check", on_click=on_click)
-                        ui.label("Select columns")
+                    ui.label("Select columns")
                     met = ui.select(["Include", "Exclude"], value="Include")
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
+
+            def choose_algorithm():
+                def on_change(e):
+                    desc.set_content(ClusterModule.models[e.value]["docstr"])
+                    desc.props("size=80")
+
+                choose_algorithm_container.clear()
+                with choose_algorithm_container, ui.card().classes("w-80"), ui.scroll_area():
+                    keys = list(ClusterModule.models.keys())
+                    with ui.row():
+                        ui.button("", icon="check")
+                        ui.label("Select algorithm")
+
+                    alg = ui.select(keys, value=keys[0], on_change=on_change)
+                    desc = ui.markdown(ClusterModule.models[keys[0]]["docstr"]).props("size=80")
 
             def refresh():
                 pass
@@ -351,9 +355,12 @@ class App:
                 ui.notify("Data has not been uploaded")
                 return
 
-            select_columns_container = ui.element()
+            with ui.row():
+                select_columns_container = ui.element()
+                choose_algorithm_container = ui.element()
 
             select_columns()
+            choose_algorithm()
 
         page_preprocess()
 
