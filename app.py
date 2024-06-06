@@ -1,3 +1,7 @@
+"""
+NOTE: THIS CODE IS UNSAFE GARBAGE BUT CODING GUIs IS GARBAGE SO IT FITS
+"""
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -216,10 +220,10 @@ class App:
                     nonlocal columns, exclude
                     columns = col.value
                     exclude = {"Include": False, "Exclude": True}[met.value]
-                    if columns:
+                    if exclude or len(columns) >= 2:
                         refresh()
                     else:
-                        ui.notify(f"No columns have been selected")
+                        ui.notify(f"At least 2 columns must be selected")
 
                 select_columns_container.clear()
                 with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
@@ -234,30 +238,72 @@ class App:
                     fig.savefig(fname="graph.png")
                     ui.download(src="./graph.png")
 
-                try:
-                    chart_xvar_containter.clear()
-                    with chart_xvar_containter, ui.row():
+                chart_xvar_containter.clear()
+                with chart_xvar_containter, ui.row():
+                    with ui.matplotlib(figsize=(10, 6)).figure as fig:
+                        df = self.state.df
+                        df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
+                        PCAModule.visualize_xvar(df, fig)
 
-                        with ui.matplotlib(figsize=(10, 6)).figure as fig:
+                    ui.button("", icon="save", on_click=on_click)
 
-                            df = self.state.df
-                            df = (
-                                df.loc[:, ~df.columns.isin(columns)]
-                                if exclude
-                                else df.loc[:, df.columns.isin(columns)]
-                            )
-                            PCAModule.visualize_xvar(df, fig)
-
-                        ui.button("", icon="save", on_click=on_click)
-
-                except Exception as e:
-                    print(e)
-                    ui.notify(
-                        f"Error occurred while computing PCA. Make sure there are no NaNs in the selected columns and all selected columns have numeric type."
+            def table_loadings():
+                table_loadings_container.clear()
+                with table_loadings_container:
+                    df = self.state.df
+                    df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
+                    ui.table.from_pandas(
+                        PCAModule.loadings(df), title="Loadings table", pagination={"rowsPerPage": 10}
                     )
 
+            def chart_loadings_hm():
+                def on_click():
+                    fig.savefig(fname="graph.png")
+                    ui.download(src="./graph.png")
+
+                chart_loadings_hm_container.clear()
+                with chart_loadings_container, ui.row():
+                    with ui.matplotlib(figsize=(10, 8)).figure as fig:
+                        df = self.state.df
+                        df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
+                        PCAModule.visualize_loadings_hm(df, fig)
+
+                    ui.button("", icon="save", on_click=on_click)
+
+            def chart_loadings():
+                def on_click():
+                    fig.savefig(fname="graph.png")
+                    ui.download(src="./graph.png")
+
+                chart_loadings_container.clear()
+                with chart_loadings_container, ui.row():
+                    with ui.matplotlib(figsize=(10, 6)).figure as fig:
+                        df = self.state.df
+                        df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
+                        PCAModule.visualize_loadings(df, fig, components=(0, 1))
+
+                    ui.button("", icon="save", on_click=on_click)
+
             def refresh():
-                chart_xvar()
+                try:
+                    chart_xvar()
+                except Exception as e:
+                    ui.notify(
+                        "Error occurred while computing PCA. Make sure there are no NaNs in the selected columns and that all selected columns have numeric type."
+                    )
+                    print(e)
+                try:
+                    chart_loadings()
+                except Exception as e:
+                    print(e)
+                try:
+                    chart_loadings_hm()
+                except Exception as e:
+                    print(e)
+                try:
+                    table_loadings()
+                except Exception as e:
+                    print(e)
 
             ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back())
 
@@ -265,9 +311,11 @@ class App:
                 ui.notify("Data has not been uploaded")
                 return
 
-            with ui.row():
-                select_columns_container = ui.element()
+            select_columns_container = ui.element()
             chart_xvar_containter = ui.element()
+            chart_loadings_container = ui.element()
+            chart_loadings_hm_container = ui.element()
+            table_loadings_container = ui.element()
 
             select_columns()
 

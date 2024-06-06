@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 from sklearn.decomposition import PCA
@@ -22,6 +23,18 @@ the SVD."""
         """
         pca = PCA().fit(X)
         return pca.explained_variance_ratio_
+
+    @classmethod
+    def loadings(self, X: pd.DataFrame) -> pd.DataFrame:
+        """
+        Returns loading for each feature in the data.
+        """
+        pca = PCA().fit(X)
+        loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
+        df = pd.DataFrame(loadings, columns=[f"PC{i}" for i in range(X.shape[1])], index=X.columns)
+        df.loc[:, "Feature"] = df.index
+        df = df.loc[:, ["Feature"] + [c for c in df.columns if c != "Feature"]]
+        return df
 
     @classmethod
     def visualize_xvar(self, X: pd.DataFrame, fig: Figure) -> None:
@@ -47,79 +60,66 @@ the SVD."""
                 textcoords="offset points",
                 ha="center",
                 va="bottom",
+                color="dimgray",
             )
 
-        ax.set_xlabel("Principal Component")
-        ax.set_ylabel("Explained Variance Ratio")
+        ax.set_xlabel("Principal component")
+        ax.set_ylabel("Explained variance ratio")
         ax.set_xticks(range(n))
+        ax.grid(False)
         ax.legend()
 
     @classmethod
-    def visualize_selected_components(self, pca_transformed, loadings, components, top_n_features=5):
+    def visualize_loadings_hm(self, X: pd.DataFrame, fig: Figure):
+        loadings = PCAModule.loadings(X)
+        loadings = loadings.loc[:, ~loadings.columns.isin(["Feature"])]
+
+        ax = fig.gca()
+        sns.heatmap(loadings, ax=ax, center=0, cmap="coolwarm")
+
+    @classmethod
+    def visualize_loadings(
+        self,
+        X: pd.DataFrame,
+        fig: Figure,
+        components: tuple[int],
+        topk: int = 3,
+    ) -> None:
         """
         Visualizes the PCA-transformed data points using selected principal components.
 
-        Parameters:
-        pca_transformed (pd.DataFrame): The PCA-transformed DataFrame.
-        loadings (pd.DataFrame): The PCA loadings.
-        components (list): List of two integers representing the selected principal components (e.g., [1, 3]).
-        top_n_features (int): Number of top features to plot for the selected components.
-
-        Returns:
-        fig: A matplotlib figure object with the plot.
+        Args:
+            X: The PCA-transformed DataFrame.
+            fig: Matplotlib figure to plot on.
+            components: Tuple of two integers representing the selected principal components.
+            topk: Number of top features to plot for the selected components.
         """
-        if len(components) != 2:
-            raise ValueError("Exactly two components must be selected for visualization.")
+        assert len(components) == 2, "Exactly two components must be selected for visualization."
 
         # Extract the selected components
         pc1, pc2 = components
 
+        Xt = PCA().fit_transform(X)
+
         # Create the plot
-        fig, ax = plt.subplots(figsize=(10, 8))
-        ax.scatter(pca_transformed[f"pca{pc1}"], pca_transformed[f"pca{pc2}"], alpha=0.7)
+        ax = fig.gca()
+        ax.scatter(Xt[:, pc1] / Xt[:, pc1].max(), Xt[:, pc2] / Xt[:, pc2].max(), alpha=0.7)
+
+        loadings = PCAModule.loadings(X)
+
+        x = loadings.loc[:, f"PC{pc1}"]
+        y = loadings.loc[:, f"PC{pc2}"]
+
+        idx = (x**2 + y**2).sort_values(ascending=False).index[:topk]
+        r = np.sqrt(x[idx[0]] ** 2 + y[idx[0]])
+
+        for i in idx:
+            ax.annotate("", xy=(x[i] / r, y[i] / r), xytext=(0, 0), arrowprops=dict(color="black", arrowstyle="->"))
+            ax.text(x[i] / (2 * r), y[i] / (2 * r), i, color="black")
 
         # Label the axes
-        ax.set_xlabel(f"Principal Component {pc1}")
-        ax.set_ylabel(f"Principal Component {pc2}")
-        ax.set_title(f"PCA: PC{pc1} vs PC{pc2}")
+        ax.set_xlabel(f"Principal component {pc1}")
+        ax.set_ylabel(f"Principal component {pc2}")
 
-        # Plot the top_n_features for the selected components as vectors
-        for i in range(top_n_features):
-            feature_name_pc1 = loadings[f"PC{pc1}"].abs().sort_values(ascending=False).index[i]
-            feature_name_pc2 = loadings[f"PC{pc2}"].abs().sort_values(ascending=False).index[i]
-
-            # Vector for PC1
-            vector_pc1 = loadings.loc[feature_name_pc1, [f"PC{pc1}", f"PC{pc2}"]]
-            ax.arrow(
-                0,
-                0,
-                vector_pc1[f"PC{pc1}"],
-                vector_pc1[f"PC{pc2}"],
-                color="r",
-                alpha=0.5,
-                head_width=0.05,
-                head_length=0.1,
-            )
-            ax.text(vector_pc1[f"PC{pc1}"] * 1.1, vector_pc1[f"PC{pc2}"] * 1.1, feature_name_pc1, color="r")
-
-            # Vector for PC2
-            if feature_name_pc2 != feature_name_pc1:
-                vector_pc2 = loadings.loc[feature_name_pc2, [f"PC{pc1}", f"PC{pc2}"]]
-                ax.arrow(
-                    0,
-                    0,
-                    vector_pc2[f"PC{pc1}"],
-                    vector_pc2[f"PC{pc2}"],
-                    color="b",
-                    alpha=0.5,
-                    head_width=0.05,
-                    head_length=0.1,
-                )
-                ax.text(vector_pc2[f"PC{pc1}"] * 1.1, vector_pc2[f"PC{pc2}"] * 1.1, feature_name_pc2, color="b")
-
-        plt.grid()
-        plt.axhline(0, color="grey", lw=0.5)
-        plt.axvline(0, color="grey", lw=0.5)
-        plt.tight_layout()
-
-        return fig
+        ax.set_xticks([])
+        ax.set_yticks([])
