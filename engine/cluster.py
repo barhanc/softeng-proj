@@ -266,14 +266,13 @@ of a cluster.""",
         Returns:
             Score value.
         """
-        ui.notify("a")
+
         assert isinstance(X, pd.DataFrame), "Expected `X` to be a DataFrame"
-        ui.notify("b")
         assert isinstance(labels, np.ndarray), "Expected `labels` to be a np.ndarray[int]"
-        ui.notify("c")
         assert method in self.scores, f"Unrecognized method. Should be one of {self.scores.keys()}"
-        ui.notify("d")
-        return self.scores[method]["score"](X, labels.astype(int))
+        s = self.scores[method]["score"](X, labels.astype(int))
+
+        return s
 
     @classmethod
     def describe(self, X: pd.DataFrame, labels: np.ndarray[int]) -> dict[str, dict[str, str | pd.DataFrame]]:
@@ -316,7 +315,7 @@ of a cluster.""",
         X_pca = pca.transform(X)
 
         ax = fig.gca()
-        ax.scatter(X_pca[:, 0], X_pca[:, 1], c=labels)
+        sc = ax.scatter(X_pca[:, 0], X_pca[:, 1], c=labels, cmap="tab10")
         ax.set_xlabel("PCA comp. 0")
         ax.set_ylabel("PCA comp. 1")
-        ax.legend()
+        ax.legend(*sc.legend_elements(), title='Cluster IDs')
