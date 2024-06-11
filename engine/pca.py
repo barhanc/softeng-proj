@@ -31,7 +31,7 @@ the SVD."""
         """
         pca = PCA().fit(X)
         loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
-        df = pd.DataFrame(loadings, columns=[f"PC{i}" for i in range(X.shape[1])], index=X.columns)
+        df = pd.DataFrame(loadings, columns=[f"PC{i+1}" for i in range(X.shape[1])], index=X.columns)
         df.loc[:, "Feature"] = df.index
         df = df.loc[:, ["Feature"] + [c for c in df.columns if c != "Feature"]]
         return df
@@ -82,7 +82,7 @@ the SVD."""
         self,
         X: pd.DataFrame,
         fig: Figure,
-        components: tuple[int],
+        components: tuple[int, int],
         topk: int = 3,
     ) -> None:
         """
@@ -94,32 +94,47 @@ the SVD."""
             components: Tuple of two integers representing the selected principal components.
             topk: Number of top features to plot for the selected components.
         """
-        assert len(components) == 2, "Exactly two components must be selected for visualization."
+        if len(components) != 2:
+            raise ValueError("Exactly two components must be selected for visualization.")
 
         # Extract the selected components
         pc1, pc2 = components
 
-        Xt = PCA().fit_transform(X)
+        pca = PCA(n_components=max(components)+1)
+        Xt = pca.fit_transform(X)
 
         # Create the plot
         ax = fig.gca()
-        ax.scatter(Xt[:, pc1] / Xt[:, pc1].max(), Xt[:, pc2] / Xt[:, pc2].max(), alpha=0.7)
+        ax.scatter(Xt[:, pc1], Xt[:, pc2], alpha=0.7)
 
-        loadings = PCAModule.loadings(X)
+        loadings = pca.components_.T * np.sqrt(pca.explained_variance_)
 
-        x = loadings.loc[:, f"PC{pc1}"]
-        y = loadings.loc[:, f"PC{pc2}"]
+        x = loadings[:, pc1]
+        y = loadings[:, pc2]
 
-        idx = (x**2 + y**2).sort_values(ascending=False).index[:topk]
-        r = np.sqrt(x[idx[0]] ** 2 + y[idx[0]])
+        idx = (x**2 + y**2).argsort()[::-1][:topk]
+        r = np.sqrt(x[idx[0]] ** 2 + y[idx[0]] ** 2)
 
         for i in idx:
             ax.annotate("", xy=(x[i] / r, y[i] / r), xytext=(0, 0), arrowprops=dict(color="black", arrowstyle="->"))
-            ax.text(x[i] / (2 * r), y[i] / (2 * r), i, color="black")
+            ax.text(x[i] / (2 * r), y[i] / (2 * r), X.columns[i], color="black")
 
         # Label the axes
-        ax.set_xlabel(f"Principal component {pc1}")
-        ax.set_ylabel(f"Principal component {pc2}")
+        ax.set_xlabel(f"Principal Component {pc1 + 1}")
+        ax.set_ylabel(f"Principal Component {pc2 + 1}")
 
-        ax.set_xticks([])
-        ax.set_yticks([])
+        # Add numerical ticks
+        ax.xaxis.set_major_formatter(plt.FuncFormatter(lambda val, pos: f'{val:.2f}'))
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda val, pos: f'{val:.2f}'))
+
+        ax.grid(True)
+
+        # Adjust limits and aspect ratio for better visualization
+        ax.set_xlim(-1.1, 1.1)
+        ax.set_ylim(-1.1, 1.1)
+        ax.set_aspect('equal', 'box')
+
+        plt.grid()
+        plt.axhline(0, color='grey', lw=0.5)
+        plt.axvline(0, color='grey', lw=0.5)
+        plt.tight_layout()

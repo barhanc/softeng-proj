@@ -220,16 +220,18 @@ class App:
         def page_pca():
             columns: list[str] = []
             exclude: bool = False
+            components: tuple[int, int] = (1, 2)
 
             def select_columns():
                 def on_click():
-                    nonlocal columns, exclude
+                    nonlocal columns, exclude, components
                     columns = col.value
                     exclude = {"Include": False, "Exclude": True}[met.value]
-                    if exclude or len(columns) >= 2:
+                    components = (int(comp1.value), int(comp2.value))
+                    if exclude or len(columns) >= 2 and components[0] < components[1] < len(columns):
                         refresh()
                     else:
-                        ui.notify(f"At least 2 columns must be selected")
+                        ui.notify(f"At least 2 columns must be selected and components 1 have to be greater then components 2 and also smaller than number of selected columns")
 
                 select_columns_container.clear()
                 with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
@@ -238,6 +240,8 @@ class App:
                         ui.label("Select columns")
                     met = ui.select(["Include", "Exclude"], value="Include")
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
+                    comp1 = ui.select([str(i) for i in range(1, len(self.state.df.columns)-1)], value="1", label="Component 1").props("style='width: 100%'")
+                    comp2 = ui.select([str(i) for i in range(1, len(self.state.df.columns)-1)], value="2", label="Component 2").props("style='width: 100%'")
 
             def chart_xvar():
                 def on_click():
@@ -250,6 +254,10 @@ class App:
                         df = self.state.df
                         df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
                         PCAModule.visualize_xvar(df, fig)
+
+                        plt.title('Explained Variance by Principal Components')
+                        plt.xlabel('Principal Components')
+                        plt.ylabel('Variance Explained')
 
                     ui.button("", icon="save", on_click=on_click)
 
@@ -274,6 +282,10 @@ class App:
                         df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
                         PCAModule.visualize_loadings_hm(df, fig)
 
+                        plt.title('Heatmap of PCA Loadings')
+                        plt.xlabel('Principal Components')
+                        plt.ylabel('Features')
+
                     ui.button("", icon="save", on_click=on_click)
 
             def chart_loadings():
@@ -286,7 +298,12 @@ class App:
                     with ui.matplotlib(figsize=(10, 6)).figure as fig:
                         df = self.state.df
                         df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
-                        PCAModule.visualize_loadings(df, fig, components=(0, 1))
+                        PCAModule.visualize_loadings(df, fig, components=components)
+
+                        plt.title('PCA Loadings')
+                        plt.xlabel(f'Principal Component {components[0]}')
+                        plt.ylabel(f'Principal Component {components[1]}')
+                        plt.legend(title='Features')
 
                     ui.button("", icon="save", on_click=on_click)
 
@@ -392,7 +409,6 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
 
                 select_columns_container.clear()
                 with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
-
                     with ui.row():
                         ui.button("Scores", on_click=compute_scores)
                         ui.label("Select columns")
@@ -533,23 +549,24 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
 
                                 with ui.matplotlib(figsize=(10, 8)).figure as fig:
                                     ClusterModule.visualize(df_pass, labels, fig)
-                                
+
+                                    plt.title('Cluster Visualization')
+                                    plt.xlabel('Feature 1')
+                                    plt.ylabel('Feature 2')
+                                    plt.legend(title='Clusters')
+
                                 ui.button("", icon="save", on_click=save_clustering)
 
-                            
                             with ui.row():
-
                                 pick_label_containder = ui.element()
                                 pick_label_containder.clear()
                                 
                                 with pick_label_containder, ui.card().classes("w-80"), ui.scroll_area():
-
                                     def update_desc_table(e):
                                         label = e.value
 
                                         table_containder.clear()
                                         with table_containder:
-
                                             description = ClusterModule.describe(df_pass, labels)[label]["stat"]
                                             description.insert(0, "Metric", description.index.tolist())
 
