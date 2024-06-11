@@ -62,8 +62,9 @@ class App:
             def change_types():
                 def on_click():
                     try:
-                        self.state = State(df=self.state.df.astype({col.value: typ.value}), prev=self.state)
-                        ui.notify(f"Successfully converted '{col.value}' into type '{typ.value}'")
+                        for col in cols.value:
+                            self.state = State(df=self.state.df.astype({col: typ.value}), prev=self.state)
+                            ui.notify(f"Successfully converted '{col}' into type '{typ.value}'")
                         show_table()
                     except Exception as e:
                         ui.notify(f"Error: {e}")
@@ -72,10 +73,10 @@ class App:
                 with change_types_container, ui.card().classes("w-80"), ui.scroll_area():
                     with ui.row():
                         ui.button("", icon="check", on_click=on_click)
-                        ui.label("Change dtype")
-
-                    col = ui.select([col for col in self.state.df.columns], value=self.state.df.columns[0])
+                        ui.label("Change type")
+                    cols = ui.select([col for col in self.state.df.columns], multiple=True)
                     typ = ui.select(["int", "float", "bool", "object"], value="object")
+
 
             def rename_columns():
                 def on_enter(e, col: str, new: str):
@@ -89,10 +90,15 @@ class App:
                     except Exception as ex:
                         ui.notify(f"Could not rename '{col}' into '{new}'")
 
+                def on_click(e):
+                    on_enter(e, col.value, name_input.value)
+
                 rename_columns_container.clear()
                 with rename_columns_container, ui.card().classes("w-80"), ui.scroll_area():
-                    ui.label("Rename columns")
-                    col = ui.select([col for col in self.state.df.columns], value=self.state.df.columns[0])
+                    with ui.row():
+                        ui.button("", icon="check", on_click=on_click)
+                        ui.label("Rename columns")
+                    col = ui.select([col for col in self.state.df.columns])
                     name_input = ui.input(label="New name")
                     name_input.on("keydown.enter", handler=lambda e: on_enter(e, col.value, name_input.value))
 
