@@ -41,7 +41,7 @@ class App:
                 ui.notify(f"Uploaded {e.name}")
                 try:
                     content = e.content.read().decode("utf-8")
-                    self.state.df = pd.read_csv(StringIO(content))
+                    self.state.df = pd.read_csv(StringIO(content), delimiter=";", decimal=",")
                     self.state.prev = None
                     refresh()
                 except Exception as ex:
@@ -625,7 +625,8 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                     original_df = state.df.copy()
                                     original_df["Labels"] = labels
 
-                                    original_df.to_csv(save_name.value, index=False)
+                                    original_df.to_csv(save_name.value, index=False, sep=";", decimal=",")
+                                    ui.notify("csv file has been saved")
 
                                 ui.label("Save Clustering")
                                 save_button = ui.button("SAVE", on_click=save_file)
