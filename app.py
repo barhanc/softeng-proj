@@ -14,7 +14,6 @@ import matplotlib.backends.backend_svg
 
 plt.style.use("ggplot")
 
-
 from io import StringIO
 from typing import List
 from dataclasses import dataclass
@@ -23,7 +22,6 @@ from nicegui import ui, events, native
 from engine.preprocess import PreprocessModule
 from engine.cluster import ClusterModule
 from engine.pca import PCAModule
-
 
 @dataclass
 class State:
@@ -327,46 +325,242 @@ class App:
 
         @ui.page("/cluster")
         def page_cluster():
+            param_desc = None
+            param_input_field = None
+            kwarg = None
+            model_kwargs = {name: {k: None for k in model["kwargs"].keys()} for name, model in ClusterModule.models.items()}
             columns: list[str] = []
             exclude: bool = False
+            met, col = None, None
+
+            def compute_scores():
+                nonlocal columns, exclude, met, col
+
+                columns = col.value
+                exclude = {"Include": False, "Exclude": True}[met.value]
+
+                if exclude:
+                    col_list = [x for x in self.state.df.columns if x not in columns]
+                else:
+                    col_list = [x for x in self.state.df.columns if x in columns]
+
+                if len(col_list) == 0:
+                    ui.notify("No columns selected.")
+                    return 
+                
+                df_pass = self.state.df[col_list]
+            
+                with hopkins_container, ui.card().classes("w-80"), ui.scroll_area():
+                    ui.label("Hopkins Statistics")
+
+                    try:
+                        ui.label(f"Score {ClusterModule.hopkins(df_pass):.2f}")
+                        ui.markdown(ClusterModule.hopkins.__doc__)
+                    
+                    except:
+                        ui.notify("Try imputing the data first.")
 
             def select_columns():
+                nonlocal met, col
+
                 select_columns_container.clear()
                 with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
-                    ui.label("Select columns")
+
+                    with ui.row():
+                        ui.button("Scores", on_click=compute_scores)
+                        ui.label("Select columns")
+
                     met = ui.select(["Include", "Exclude"], value="Include")
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
 
-            def choose_algorithm():
-                def on_change(e):
-                    desc.set_content(ClusterModule.models[e.value]["docstr"])
-                    desc.props("size=80")
+            def algorithm_setup():
+                nonlocal model_kwargs
+                
+                model_keys = list(ClusterModule.models.keys())
+                model = ClusterModule.models[model_keys[0]]
 
+                def create_input(model, kwarg, variable):
+                    nonlocal model_kwargs
+
+                    if isinstance(variable, str):
+                        var_type, default_value = variable.split(',')
+                        if var_type == 'int':
+                            default_value = int(default_value)
+                        elif var_type == 'float':
+                            default_value = float(default_value)
+
+                        default_value = model_kwargs[model][kwarg] if model_kwargs[model][kwarg] is not None else default_value
+                        input_field = ui.input(label=f'Enter {var_type}', value=str(default_value))
+
+                    elif isinstance(variable, list):
+                        default_value =  model_kwargs[model][kwarg] if model_kwargs[model][kwarg] is not None else variable[0]
+                        input_field = ui.select(variable, label='Choose an option', value=str(default_value))
+                        input_field.props('style="width: 90%;"')
+
+                    return input_field
+                
+                def accept_param_button_callback():
+                    nonlocal model
+                    nonlocal model_kwargs
+                    nonlocal param_input_field
+
+                    arg_type = model["kwargs"][kwarg]["type"]
+
+                    if isinstance(arg_type, str):
+                        var_type, _ = arg_type.split(',')
+                        if var_type == 'int':
+                            model_kwargs[model["name"]][kwarg] = int(param_input_field.value)
+                        elif var_type == 'float':
+                            model_kwargs[model["name"]][kwarg] = float(param_input_field.value)
+
+                    else:
+                        model_kwargs[model["name"]][kwarg] = param_input_field.value
+
+                # alg params
+                def setup_alg_params():
+                    nonlocal model
+                    nonlocal param_desc
+                    nonlocal param_input_field
+                    nonlocal kwarg
+
+                    set_parameters_container.clear()
+                    with set_parameters_container, ui.card().classes("w-80"), ui.scroll_area():
+                        kwarg_keys = list(model["kwargs"].keys())
+                        kwarg = kwarg_keys[0]
+
+                        ui.label("Change Parameters")
+
+                        param_selector = ui.select(kwarg_keys, value=kwarg, on_change=pick_kwarg)
+                        param_desc = ui.markdown(model["kwargs"][kwarg]["docstr"]).props("size=80")
+
+                        accept_param_button = ui.button(text="Accept Parameter", on_click=accept_param_button_callback)
+
+                        param_type = model["kwargs"][kwarg]["type"]
+                        param_input_field = create_input(model["name"], kwarg, param_type)
+
+                def change_algorithm(e):
+                    nonlocal model
+
+                    model = ClusterModule.models[e.value]
+
+                    model_desc.set_content(model["docstr"])
+                    model_desc.props("size=80")
+
+                    setup_alg_params()
+
+                def pick_kwarg(e):
+                    nonlocal model
+                    nonlocal param_desc
+                    nonlocal param_input_field
+                    nonlocal kwarg
+                    
+                    param_desc.set_content(model["kwargs"][e.value]["docstr"])
+                    param_desc.props("size=80")
+                    param_type = model["kwargs"][e.value]["type"]
+
+                    param_input_field.delete()
+                    param_input_field = create_input(model["name"], e.value, param_type)
+
+                    kwarg = e.value
+
+                def run_clustering():
+                    nonlocal model
+                    nonlocal model_kwargs
+                    nonlocal col, met
+
+                    columns = col.value
+                    exclude = {"Include": False, "Exclude": True}[met.value]
+
+                    if exclude:
+                        col_list = [x for x in self.state.df.columns if x not in columns]
+                    else:
+                        col_list = [x for x in self.state.df.columns if x in columns]
+
+                    if len(col_list) <= 1:
+                        ui.notify("Select at least 2 columns.")
+                        return 
+                    
+                    df_pass = self.state.df[col_list]
+
+                    kwargs = model_kwargs[model["name"]]
+                    passed_kw = {k: v for k, v in kwargs.items() if v is not None}
+
+                    try:
+                        visualise_container.clear()
+                        with visualise_container:
+                            labels = ClusterModule.cluster(df_pass, method=model["name"], **passed_kw)
+
+                            with ui.matplotlib(figsize=(10, 8)).figure as fig:
+                                ClusterModule.visualize(df_pass, labels, fig)
+                            
+                            # TODO: ADD SOMETHING TO PICK THE LABEL
+
+                            picked_label = labels[0]
+                            ui.table.from_pandas(ClusterModule.describe(df_pass, labels)[picked_label]["stat"], title="Descriptive statistics (count, mean, std, min, max, q1, q2, q3)", pagination={"rowsPerPage": 10})
+                            
+                            # TODO:
+                            # TRIED FIXID AT 4AM AND COULDNT - scores doesnt work
+
+                            # davies_container.clear()
+                            # with davies_container, ui.card().classes("w-80"), ui.scroll_area():
+                            #     ui.label("Davies-Bouldin Score")
+                            #     ui.label(f"Score {ClusterModule.evaluate(df_pass, labels, str='Davies-Bouldin'):.2f}")
+                            #     ui.markdown(ClusterModule.scores["Davies-Bouldin"]["docstr"])
+
+                            # silhouette_container.clear()
+                            # with silhouette_container, ui.card().classes("w-80"), ui.scroll_area():
+                            #     ui.label("Silhouette Score")
+                            #     ui.label(f"Score {ClusterModule.evaluate(df_pass, labels, str='Silhouette'):.2f}")
+                            #     ui.markdown(ClusterModule.scores["Silhouette"]["docstr"])
+
+                            # calinski_container.clear()
+                            # with calinski_container, ui.card().classes("w-80"), ui.scroll_area():
+                            #     ui.label("Calinski-Harabasz Score")
+                            #     ui.label(f"Score {ClusterModule.evaluate(df_pass, labels, str='Calinski-Harabasz'):.2f}")
+                            #     ui.markdown(ClusterModule.scores["Calinski-Harabasz"]["docstr"])
+
+                            # TODO: ADD SAVE BUTTONS FOR FIGURES AND SAVE FILE AT THE END
+
+                    except:
+                        ui.notify("Couldn't cluster. Try imputing the data.")
+                        return
+
+                # alg
                 choose_algorithm_container.clear()
                 with choose_algorithm_container, ui.card().classes("w-80"), ui.scroll_area():
-                    keys = list(ClusterModule.models.keys())
+
                     with ui.row():
-                        ui.button("", icon="check")
+                        ui.button("Run", on_click=run_clustering)
                         ui.label("Select algorithm")
 
-                    alg = ui.select(keys, value=keys[0], on_change=on_change)
-                    desc = ui.markdown(ClusterModule.models[keys[0]]["docstr"]).props("size=80")
+                    alg_selector = ui.select(model_keys, value=model_keys[0], on_change=change_algorithm)
+                    model_desc = ui.markdown(model["docstr"]).props("size=80")
 
-            def refresh():
-                pass
+                setup_alg_params()
 
             ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back())
 
             if self.state.df is None:
                 ui.notify("Data has not been uploaded")
                 return
-
+            
             with ui.row():
                 select_columns_container = ui.element()
                 choose_algorithm_container = ui.element()
+                set_parameters_container = ui.element()
 
+            with ui.row():
+                hopkins_container = ui.element()
+
+            visualise_container = ui.element()
+
+            with ui.row():
+                davies_container = ui.element()
+                silhouette_container = ui.element()
+                calinski_container = ui.element()
+            
             select_columns()
-            choose_algorithm()
+            algorithm_setup()
 
         page_preprocess()
 

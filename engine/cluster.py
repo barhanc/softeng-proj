@@ -7,6 +7,9 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import DBSCAN, OPTICS, AgglomerativeClustering, KMeans
 from sklearn.metrics import silhouette_score, davies_bouldin_score, calinski_harabasz_score
 
+from matplotlib.figure import Figure
+
+from nicegui import ui
 
 class ClusterModule:
 
@@ -20,32 +23,43 @@ properties and relationships among the data points."""
     models = {
         "DBSCAN": {
             "model": DBSCAN,
+            "name": "DBSCAN",
             "docstr": """
 DBSCAN - Density-Based Spatial Clustering of Applications with Noise. Finds core samples of high
 density and expands clusters from them. Good for data which contains clusters
 of similar density.""",
             "kwargs": {
-                "eps": """
+                "eps": {
+                    "docstr":"""
 eps: float, default=0.5
 
 The maximum distance between two samples for one to be considered as in the neighborhood of the
 other. This is not a maximum bound on the distances of points within a cluster. This is the most 
 important DBSCAN parameter to choose appropriately for your data set and distance function.""",
-                "min_sampes": """
+                    "type": "float, 0.5"
+                },
+                "min_sampes": {
+                    "docstr":"""
 min_samples: int, default=5
 
 The number of samples (or total weight) in a neighborhood for a point to be considered as a core 
 point. This includes the point itself. If min_samples is set to a higher value, DBSCAN will find 
 denser clusters, whereas if it is set to a lower value, the found clusters will be more sparse.""",
-                "metric": """
+                    "type": "int, 5"
+                },
+                "metric": {
+                    "docstr":"""
 metric: str, default='euclidean'
 
 The metric to use when calculating distance between instances in a feature array. It must be one of 
 the 'cityblock', 'cosine', 'euclidean', 'l1', 'l2', 'manhattan'.""",
+                    "type": ["euclidean", "cityblock", "cosine", "l1", "l2", "manhattan"]
+                },
             },
         },
         "OPTICS": {
             "model": OPTICS,
+            "name": "OPTICS",
             "docstr": """
 OPTICS (Ordering Points To Identify the Clustering Structure), closely related to DBSCAN, finds core
 sample of high density and expands clusters from them [1]. Unlike DBSCAN, keeps cluster hierarchy
@@ -55,52 +69,72 @@ sklearn implementation of DBSCAN.
 [1] Ankerst, Mihael, Markus M. Breunig, Hans-Peter Kriegel, and Jörg Sander. “OPTICS: ordering
 points to identify the clustering structure.” ACM SIGMOD Record 28, no. 2 (1999): 49-60.""",
             "kwargs": {
-                "min_samples": """
-min_samples: int > 1 or float between 0 and 1, default=5
+                "min_samples": {
+                    "docstr":"""
+min_samples: int > 1, default=5
 
 The number of samples in a neighborhood for a point to be considered as a core point. Also, up and
 down steep regions can't have more than min_samples consecutive non-steep points. Expressed as an
 absolute number or a fraction of the number of samples (rounded to be at least 2).""",
-                "max_eps": """
+                    "type": "int, 5"
+                },
+                "max_eps": {
+                    "docstr":"""
 max_eps: float, default=np.inf
 
 The maximum distance between two samples for one to be considered as in the neighborhood of the
 other. Default value of np.inf will identify clusters across all scales; reducing max_eps will
 result in shorter run times.""",
-                "metric": """
+                    "type": "float, inf"
+                },
+                "metric": {
+                    "docstr":"""
 metric: str, default='minkowski'
 
 Metric to use for distance computation. It must be one of  the 'cityblock', 'cosine', 'euclidean',
 'l1', 'l2', 'manhattan'.""",
+                    "type": ["euclidean", "cityblock", "cosine", "l1", "l2", "manhattan"]
+                },
             },
         },
         "Agglomerative": {
             "model": AgglomerativeClustering,
+            "name": "Agglomerative",
             "docstr": """
 Agglomerative Clustering recursively merges pair of clusters of sample data; uses linkage distance.""",
             "kwargs": {
-                "n_clusters": """
+                "n_clusters": {
+                    "docstr":"""
 n_clusters: int, default=2
 
 The number of clusters to find.""",
-                "metric": """
+                    "type": "int, 2"
+                },
+                "metric": {
+                    "docstr":"""
 metric: str, default="euclidean"
 
 Metric used to compute the linkage. Can be 'euclidean', 'l1', 'l2', 'manhattan', 'cosine'.""",
+                    "type": ["euclidean", "cosine", "l1", "l2", "manhattan"]
+                },
             },
         },
         "KMeans": {
             "model": KMeans,
+            "name": "KMeans",
             "docstr": """
 The KMeans algorithm clusters data by trying to separate samples in n groups of equal variance,
 minimizing a criterion known as the inertia or within-cluster sum-of-squares (see below). This
 algorithm requires the number of clusters to be specified. It scales well to large numbers of
 samples and has been used across a large range of application areas in many different fields.""",
             "kwargs": {
-                "n_clusters": """
+                "n_clusters": {
+                    "docstr":"""
 n_clusters: int, default=8
 
 The number of clusters to form as well as the number of centroids to generate.""",
+                    "type": "int, 8"
+                },
             },
         },
     }
@@ -232,9 +266,13 @@ of a cluster.""",
         Returns:
             Score value.
         """
+        ui.notify("a")
         assert isinstance(X, pd.DataFrame), "Expected `X` to be a DataFrame"
+        ui.notify("b")
         assert isinstance(labels, np.ndarray), "Expected `labels` to be a np.ndarray[int]"
+        ui.notify("c")
         assert method in self.scores, f"Unrecognized method. Should be one of {self.scores.keys()}"
+        ui.notify("d")
         return self.scores[method]["score"](X, labels.astype(int))
 
     @classmethod
@@ -264,7 +302,7 @@ of a cluster.""",
         }
 
     @classmethod
-    def visualize(self, X: pd.DataFrame, labels: np.ndarray[int]):
+    def visualize(self, X: pd.DataFrame, labels: np.ndarray[int], fig: Figure):
         """TODO:...
 
         Args:
@@ -277,10 +315,8 @@ of a cluster.""",
         pca = PCA(n_components=2, random_state=0).fit(X)
         X_pca = pca.transform(X)
 
-        plt.style.use("ggplot")
-        fig, ax = plt.subplots()
-        ax.scatter(x=X_pca.iloc[:, 0], y=X_pca.iloc[:, 1], c=labels)
+        ax = fig.gca()
+        ax.scatter(X_pca[:, 0], X_pca[:, 1], c=labels)
         ax.set_xlabel("PCA comp. 0")
         ax.set_ylabel("PCA comp. 1")
-
-        return fig
+        ax.legend()
