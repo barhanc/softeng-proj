@@ -261,9 +261,10 @@ class App:
                         df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
                         PCAModule.visualize_xvar(df, fig)
 
-                        plt.title('Explained Variance by Principal Components')
-                        plt.xlabel('Principal Components')
-                        plt.ylabel('Variance Explained')
+                        ax = fig.gca()
+                        ax.set_title('Explained Variance by Principal Components')
+                        ax.set_xlabel('Principal Components')
+                        ax.set_ylabel('Variance Explained')
 
                     ui.button("", icon="save", on_click=on_click)
 
@@ -288,9 +289,10 @@ class App:
                         df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
                         PCAModule.visualize_loadings_hm(df, fig)
 
-                        plt.title('Heatmap of PCA Loadings')
-                        plt.xlabel('Principal Components')
-                        plt.ylabel('Features')
+                        ax = fig.gca()
+                        ax.set_title('Heatmap of PCA Loadings')
+                        ax.set_xlabel('Principal Components')
+                        ax.set_ylabel('Features')
 
                     ui.button("", icon="save", on_click=on_click)
 
@@ -306,10 +308,11 @@ class App:
                         df = df.loc[:, ~df.columns.isin(columns)] if exclude else df.loc[:, df.columns.isin(columns)]
                         PCAModule.visualize_loadings(df, fig, components=components)
 
-                        plt.title('PCA Loadings')
-                        plt.xlabel(f'Principal Component {components[0]}')
-                        plt.ylabel(f'Principal Component {components[1]}')
-                        plt.legend(title='Features')
+                        ax = fig.gca()
+                        ax.set_title('PCA Loadings')
+                        ax.set_xlabel(f'Principal Component {components[0]}')
+                        ax.set_ylabel(f'Principal Component {components[1]}')
+                        ax.legend(title='Features')
 
                     ui.button("", icon="save", on_click=on_click)
 
@@ -553,13 +556,8 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                     fig.savefig(fname="graph.png")
                                     ui.download(src="./graph.png")
 
-                                with ui.matplotlib(figsize=(10, 8)).figure as fig:
+                                with ui.matplotlib(figsize=(10, 6)).figure as fig:
                                     ClusterModule.visualize(df_pass, labels, fig)
-
-                                    plt.title('Cluster Visualization')
-                                    plt.xlabel('Feature 1')
-                                    plt.ylabel('Feature 2')
-                                    plt.legend(title='Clusters')
 
                                 ui.button("", icon="save", on_click=save_clustering)
 
@@ -631,6 +629,29 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
 
                                 ui.markdown(ClusterModule.scores["Calinski-Harabasz"]["docstr"])
 
+                            if model["name"] == "KMeans":
+                                
+                                silhouettes_container.clear()
+                                with silhouette_container:
+                                    silouettes_measures = [0 for i in range(2, 15)]
+                                    for i in range(len(silouettes_measures)):
+                                        
+                                        labels = ClusterModule.cluster(df_pass, method="KMeans", n_clusters=(i+2))
+                                        score = ClusterModule.evaluate(df_pass, labels, method='Silhouette')
+                                        silouettes_measures[i] = score
+                                    
+                                    X = [i for i in range(2, 15)]
+
+                                    with ui.matplotlib(figsize=(10, 6)).figure as fig:
+                                        
+                                        ax = fig.gca()
+                                        ax.bar(X, silouettes_measures, color='blue')
+                                        ax.set_xlabel('Number of Clusters')
+                                        ax.set_ylabel('Silhouette Score')
+                                        ax.set_title('Silhouette Scores for Different Numbers of Clusters')
+                                        ax.set_xticks(X)
+                                        ax.grid(axis='y', linestyle='--', alpha=0.7)
+
                             save_container.clear()
                             with save_container, ui.card().classes("w-80"), ui.scroll_area():
 
@@ -648,8 +669,6 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                 ui.label("Save Clustering")
                                 save_button = ui.button("SAVE", on_click=save_file)
                                 save_name = ui.input(label=f'Enter filename', value="output.csv")
-
-                                ui.markdown("")
 
                     except:
                         ui.notify("Couldn't cluster. Try imputing the data.")
@@ -683,6 +702,7 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                 hopkins_container = ui.element()
 
             visualise_container = ui.element()
+            silhouettes_container = ui.element()
 
             with ui.row():
                 davies_container = ui.element()
