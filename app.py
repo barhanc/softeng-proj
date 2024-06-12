@@ -2,11 +2,6 @@
 NOTE: THIS CODE IS UNSAFE GARBAGE BUT CODING GUIs IS GARBAGE SO IT FITS
 """
 
-# # macOS packaging support
-# from multiprocessing import freeze_support  # noqa
-
-# freeze_support()  # noqa
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -25,6 +20,7 @@ from engine.pca import PCAModule
 
 from pandas.api.types import is_numeric_dtype
 
+
 @dataclass
 class State:
     df: pd.DataFrame
@@ -36,16 +32,17 @@ class App:
         self.state = State(None, None)
 
     def main(self):
+        ui.add_head_html('<style>body { background-color: #e0f7e9; }</style>')
         def page_preprocess():
             def csv_file_handler(e: events.UploadEventArguments):
-                ui.notify(f"Uploaded {e.name}")
+                ui.notify(f"Uploaded {e.name}", color="blue")
                 try:
                     content = e.content.read().decode("utf-8")
                     self.state.df = pd.read_csv(StringIO(content), delimiter=";", decimal=",")
                     self.state.prev = None
                     refresh()
                 except Exception as ex:
-                    ui.notify(f"Error occurred while opening file: {str(ex)}")
+                    ui.notify(f"Error occurred while opening file: {str(ex)}", color="red")
 
             def show_table():
                 df = self.state.df
@@ -57,47 +54,48 @@ class App:
                         columns=[{"name": col, "label": col, "field": col} for col in df.columns],
                         rows=df.to_dict(orient="records"),
                         pagination={"rowsPerPage": 10},
-                    )
+                    ).classes("table-centered")
 
             def change_types():
                 def on_click():
                     try:
                         for col in cols.value:
                             self.state = State(df=self.state.df.astype({col: typ.value}), prev=self.state)
-                            ui.notify(f"Successfully converted '{col}' into type '{typ.value}'")
+                            ui.notify(f"Successfully converted '{col}' into type '{typ.value}'", color="green")
                         show_table()
                     except Exception as e:
-                        ui.notify(f"Error: {e}")
+                        ui.notify(f"Error: {e}", color="red")
 
                 change_types_container.clear()
-                with change_types_container, ui.card().classes("w-80"), ui.scroll_area():
+                with change_types_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     with ui.row():
-                        ui.button("", icon="check", on_click=on_click)
-                        ui.label("Change type")
+                        ui.button("", icon="check", on_click=on_click).props("color=green")
+                        ui.label("Change type").style('color: #00796b; font-family: Arial, sans-serif')
                     cols = ui.select([col for col in self.state.df.columns], multiple=True)
                     typ = ui.select(["int", "float", "bool", "object"], value="object")
-
 
             def rename_columns():
                 def on_enter(e, col: str, new: str):
                     if not new:
-                        ui.notify(f"No name was provided")
+                        ui.notify(f"No name was provided", color="red")
                         return
                     try:
                         self.state = State(self.state.df.rename(columns={col: new}), prev=self.state)
-                        ui.notify(f"Successfully renamed '{col}' into '{new}'")
+                        ui.notify(f"Successfully renamed '{col}' into '{new}'", color="green")
                         refresh()
                     except Exception as ex:
-                        ui.notify(f"Could not rename '{col}' into '{new}'")
+                        ui.notify(f"Could not rename '{col}' into '{new}'", color="red")
 
                 def on_click(e):
                     on_enter(e, col.value, name_input.value)
 
                 rename_columns_container.clear()
-                with rename_columns_container, ui.card().classes("w-80"), ui.scroll_area():
+                with rename_columns_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     with ui.row():
-                        ui.button("", icon="check", on_click=on_click)
-                        ui.label("Rename columns")
+                        ui.button("", icon="check", on_click=on_click).props("color=green")
+                        ui.label("Rename columns").style('color: #00796b; font-family: Arial, sans-serif')
                     col = ui.select([col for col in self.state.df.columns])
                     name_input = ui.input(label="New name")
                     name_input.on("keydown.enter", handler=lambda e: on_enter(e, col.value, name_input.value))
@@ -109,7 +107,7 @@ class App:
 
                 def on_click(e):
                     if len(col.value) == 0:
-                        ui.notify("No columns have been chosen")
+                        ui.notify("No columns have been chosen", color="red")
                         return
 
                     try:
@@ -117,17 +115,18 @@ class App:
                             df=PreprocessModule.scale(X=self.state.df, columns=col.value, method=scr.value),
                             prev=self.state,
                         )
-                        ui.notify(f"Successfully applied scaler")
+                        ui.notify(f"Successfully applied scaler", color="green")
                         show_table()
                     except Exception as ex:
-                        ui.notify("Error occurred while applying scaler")
+                        ui.notify("Error occurred while applying scaler", color="red")
 
                 apply_scaler_container.clear()
-                with apply_scaler_container, ui.card().classes("w-80"), ui.scroll_area():
+                with apply_scaler_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     keys = list(PreprocessModule.scalers.keys())
                     with ui.row():
-                        ui.button("", icon="check", on_click=on_click)
-                        ui.label("Apply scaler")
+                        ui.button("", icon="check", on_click=on_click).props("color=green")
+                        ui.label("Apply scaler").style('color: #00796b; font-family: Arial, sans-serif')
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
                     scr = ui.select(keys, value=keys[0], on_change=on_change)
 
@@ -140,7 +139,7 @@ class App:
 
                 def on_click(e):
                     if len(col.value) == 0:
-                        ui.notify("No columns have been chosen")
+                        ui.notify("No columns have been chosen", color="red")
                         return
 
                     try:
@@ -148,17 +147,18 @@ class App:
                             df=PreprocessModule.impute(X=self.state.df, columns=col.value, method=imp.value),
                             prev=self.state,
                         )
-                        ui.notify(f"Successfully applied imputer")
+                        ui.notify(f"Successfully applied imputer", color="green")
                         show_table()
                     except Exception as ex:
-                        ui.notify("Error occurred while applying imputer")
+                        ui.notify("Error occurred while applying imputer", color="red")
 
                 apply_imputer_container.clear()
-                with apply_imputer_container, ui.card().classes("w-80"), ui.scroll_area():
+                with apply_imputer_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     keys = list(PreprocessModule.imputers.keys())
                     with ui.row():
-                        ui.button("", icon="check", on_click=on_click)
-                        ui.label("Apply imputer")
+                        ui.button("", icon="check", on_click=on_click).props("color=green")
+                        ui.label("Apply imputer").style('color: #00796b; font-family: Arial, sans-serif')
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
                     imp = ui.select(keys, value=keys[0], on_change=on_change)
 
@@ -166,18 +166,22 @@ class App:
 
             def apply_pca():
                 apply_pca_container.clear()
-                with apply_pca_container, ui.card().classes("w-80"), ui.scroll_area():
+                with apply_pca_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     with ui.row():
-                        ui.button("", icon="chevron_right", on_click=lambda e: ui.navigate.to("/pca"))
-                        ui.label("Perform PCA")
+                        ui.button("", icon="chevron_right", on_click=lambda e: ui.navigate.to("/pca")).props(
+                            "color=blue")
+                        ui.label("Perform PCA").style('color: #00796b; font-family: Arial, sans-serif')
                     ui.markdown(PCAModule.desc).props("size=80")
 
             def apply_cluster():
                 apply_cluster_container.clear()
-                with apply_cluster_container, ui.card().classes("w-80"), ui.scroll_area():
+                with apply_cluster_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     with ui.row():
-                        ui.button("", icon="chevron_right", on_click=lambda e: ui.navigate.to("/cluster"))
-                        ui.label("Perform clustering")
+                        ui.button("", icon="chevron_right", on_click=lambda e: ui.navigate.to("/cluster")).props(
+                            "color=blue")
+                        ui.label("Perform clustering").style('color: #00796b; font-family: Arial, sans-serif')
                     ui.markdown(ClusterModule.desc).props("size=80")
 
             def refresh():
@@ -193,9 +197,9 @@ class App:
                 if self.state.prev is not None:
                     self.state = self.state.prev
                     refresh()
-                    ui.notify(f"Reverted changes")
+                    ui.notify(f"Reverted changes", color="blue")
                 else:
-                    ui.notify(f"Nothing to revert")
+                    ui.notify(f"Nothing to revert", color="red")
 
             # ==========================================================================================
             # ==========================================================================================
@@ -203,7 +207,7 @@ class App:
             # Upload button
             ui.upload(on_upload=csv_file_handler, max_files=1, auto_upload=True).props("accept=.csv").classes(
                 "max-w-full"
-            )
+            ).style('background-color: #e0f7fa; color: #00796b')
 
             # Preprocessing cards
             with ui.row():
@@ -217,13 +221,15 @@ class App:
                 apply_cluster_container = ui.element()
 
             # Revert button
-            ui.button("", on_click=revert, icon="undo")
+            ui.button("", on_click=revert, icon="undo").props("color=red")
 
             # Container for the table
             table_container = ui.element()
 
         @ui.page("/pca")
         def page_pca():
+            ui.add_head_html('<style>body { background-color: #fff9c4; }</style>')
+
             columns: list[str] = []
             exclude: bool = False
             components: tuple[int, int] = (1, 2)
@@ -237,17 +243,22 @@ class App:
                     if exclude or len(columns) >= 2 and components[0] < components[1] < len(columns):
                         refresh()
                     else:
-                        ui.notify(f"At least 2 columns must be selected and components 1 have to be greater then components 2 and also smaller than number of selected columns")
+                        ui.notify(
+                            f"At least 2 columns must be selected and components 1 have to be greater then components 2 and also smaller than number of selected columns",
+                            color="red")
 
                 select_columns_container.clear()
-                with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
+                with select_columns_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     with ui.row():
-                        ui.button("", icon="check", on_click=on_click)
-                        ui.label("Select columns")
+                        ui.button("", icon="check", on_click=on_click).props("color=green")
+                        ui.label("Select columns").style('color: #00796b; font-family: Arial, sans-serif')
                     met = ui.select(["Include", "Exclude"], value="Include")
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
-                    comp1 = ui.select([str(i) for i in range(1, len(self.state.df.columns)-1)], value="1", label="Component 1").props("style='width: 100%'")
-                    comp2 = ui.select([str(i) for i in range(1, len(self.state.df.columns)-1)], value="2", label="Component 2").props("style='width: 100%'")
+                    comp1 = ui.select([str(i) for i in range(1, len(self.state.df.columns) - 1)], value="1",
+                                      label="Component 1").props("style='width: 100%'")
+                    comp2 = ui.select([str(i) for i in range(1, len(self.state.df.columns) - 1)], value="2",
+                                      label="Component 2").props("style='width: 100%'")
 
             def chart_xvar():
                 def on_click():
@@ -266,7 +277,7 @@ class App:
                         ax.set_xlabel('Principal Components')
                         ax.set_ylabel('Variance Explained')
 
-                    ui.button("", icon="save", on_click=on_click)
+                    ui.button("", icon="save", on_click=on_click).props("color=blue")
 
             def table_loadings():
                 table_loadings_container.clear()
@@ -294,7 +305,7 @@ class App:
                         ax.set_xlabel('Principal Components')
                         ax.set_ylabel('Features')
 
-                    ui.button("", icon="save", on_click=on_click)
+                    ui.button("", icon="save", on_click=on_click).props("color=blue")
 
             def chart_loadings():
                 def on_click():
@@ -314,14 +325,15 @@ class App:
                         ax.set_ylabel(f'Principal Component {components[1]}')
                         ax.legend(title='Features')
 
-                    ui.button("", icon="save", on_click=on_click)
+                    ui.button("", icon="save", on_click=on_click).props("color=blue")
 
             def refresh():
                 try:
                     chart_xvar()
                 except Exception as e:
                     ui.notify(
-                        "Error occurred while computing PCA. Make sure there are no NaNs in the selected columns and that all selected columns have numeric type."
+                        "Error occurred while computing PCA. Make sure there are no NaNs in the selected columns and that all selected columns have numeric type.",
+                        color="red"
                     )
                     print(e)
                 try:
@@ -337,10 +349,10 @@ class App:
                 except Exception as e:
                     print(e)
 
-            ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back())
+            ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back()).props("color=blue")
 
             if self.state.df is None:
-                ui.notify("Data has not been uploaded")
+                ui.notify("Data has not been uploaded", color="red")
                 return
 
             select_columns_container = ui.element()
@@ -353,10 +365,13 @@ class App:
 
         @ui.page("/cluster")
         def page_cluster():
+            ui.add_head_html('<style>body { background-color: #fff9c4; }</style>')
+
             param_desc = None
             param_input_field = None
             kwarg = None
-            model_kwargs = {name: {k: None for k in model["kwargs"].keys()} for name, model in ClusterModule.models.items()}
+            model_kwargs = {name: {k: None for k in model["kwargs"].keys()} for name, model in
+                            ClusterModule.models.items()}
             columns: list[str] = []
             exclude: bool = False
             met, col = None, None
@@ -373,61 +388,65 @@ class App:
                     col_list = [x for x in self.state.df.columns if x in columns]
 
                 if len(col_list) == 0:
-                    ui.notify("No columns selected.")
+                    ui.notify("No columns selected.", color="red")
                     return
-                
+
                 df_pass = self.state.df[col_list]
 
                 if not all([is_numeric_dtype(df_pass[x]) for x in df_pass.columns]):
 
                     for col_name in df_pass.columns:
                         if not is_numeric_dtype(df_pass[col_name]):
-                            ui.notify(f"Column {col_name} has type {df_pass[col_name].dtype} should be float or int.")
+                            ui.notify(f"Column {col_name} has type {df_pass[col_name].dtype} should be float or int.",
+                                      color="red")
                     return
 
                 hopkins_container.clear()
-                with hopkins_container, ui.card().classes("w-80"), ui.scroll_area():
-                    ui.label("Hopkins Statistics")
+                with hopkins_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
+                    ui.label("Hopkins Statistics").style('color: #00796b; font-family: Arial, sans-serif')
 
                     try:
-                        ui.label(f"Score {ClusterModule.hopkins(df_pass):.2f}")
+                        ui.label(f"Score {ClusterModule.hopkins(df_pass):.2f}").style(
+                            'color: #00796b; font-family: Arial, sans-serif')
                         ui.markdown(
-"""Computes Hopkins statistics H value to estimate cluster tendency of data set `X`.
+                            """Computes Hopkins statistics H value to estimate cluster tendency of data set `X`.
+                            
+                            It acts as a statistical hypothesis test where the null hypothesis is that the data is
+                            generated by a Poisson point process and are thus uniformly randomly distributed. Under the
+                            null hypothesis of spatial randomness, this statistic has a Beta(m,m) distribution and will
+                            always lie between 0 and 1. The interpretation of H follows these guidelines:
+                            
+                            - Low values of H indicate repulsion of the events in X away from each other.
+                            - Values of H near 0.5 indicate spatial randomness of the events in X.
+                            - High values of H indicate possible clustering of the events in X. Values of H>0.75
+                                indicate a clustering tendency at the 90% confidence level
+                            
+                            We calculate Hopkins statistic `samples` times and then calculate the mean value of Hopkins
+                            statistics.
+                            
+                            For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
+                        ).props("color=green")
 
-It acts as a statistical hypothesis test where the null hypothesis is that the data is
-generated by a Poisson point process and are thus uniformly randomly distributed. Under the
-null hypothesis of spatial randomness, this statistic has a Beta(m,m) distribution and will
-always lie between 0 and 1. The interpretation of H follows these guidelines:
-
-- Low values of H indicate repulsion of the events in X away from each other.
-- Values of H near 0.5 indicate spatial randomness of the events in X.
-- High values of H indicate possible clustering of the events in X. Values of H>0.75
-    indicate a clustering tendency at the 90% confidence level
-
-We calculate Hopkins statistic `samples` times and then calculate the mean value of Hopkins
-statistics.
-
-For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
-                        )
-                    
                     except:
-                        ui.notify("Try imputing the data first.")
+                        ui.notify("Try imputing the data first.", color="red")
 
             def select_columns():
                 nonlocal met, col
 
                 select_columns_container.clear()
-                with select_columns_container, ui.card().classes("w-80"), ui.scroll_area():
+                with select_columns_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
                     with ui.row():
-                        ui.button("Scores", on_click=compute_scores)
-                        ui.label("Select columns")
+                        ui.button("Scores", on_click=compute_scores).props("color=blue")
+                        ui.label("Select columns").style('color: #00796b; font-family: Arial, sans-serif')
 
                     met = ui.select(["Include", "Exclude"], value="Include")
                     col = ui.select([col for col in self.state.df.columns], multiple=True)
 
             def algorithm_setup():
                 nonlocal model_kwargs
-                
+
                 model_keys = list(ClusterModule.models.keys())
                 model = ClusterModule.models[model_keys[0]]
 
@@ -441,16 +460,18 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                         elif var_type == 'float':
                             default_value = float(default_value)
 
-                        default_value = model_kwargs[model][kwarg] if model_kwargs[model][kwarg] is not None else default_value
+                        default_value = model_kwargs[model][kwarg] if model_kwargs[model][
+                                                                          kwarg] is not None else default_value
                         input_field = ui.input(label=f'Enter {var_type}', value=str(default_value))
 
                     elif isinstance(variable, list):
-                        default_value =  model_kwargs[model][kwarg] if model_kwargs[model][kwarg] is not None else variable[0]
+                        default_value = model_kwargs[model][kwarg] if model_kwargs[model][kwarg] is not None else \
+                        variable[0]
                         input_field = ui.select(variable, label='Choose an option', value=str(default_value))
                         input_field.props('style="width: 90%;"')
 
                     return input_field
-                
+
                 def accept_param_button_callback():
                     nonlocal model
                     nonlocal model_kwargs
@@ -476,16 +497,18 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                     nonlocal kwarg
 
                     set_parameters_container.clear()
-                    with set_parameters_container, ui.card().classes("w-80"), ui.scroll_area():
+                    with set_parameters_container, ui.card().classes("w-80 center-card").style(
+                            'background-color: #e0f7fa'), ui.scroll_area():
                         kwarg_keys = list(model["kwargs"].keys())
                         kwarg = kwarg_keys[0]
 
-                        ui.label("Change Parameters")
+                        ui.label("Change Parameters").style('color: #00796b; font-family: Arial, sans-serif')
 
                         param_selector = ui.select(kwarg_keys, value=kwarg, on_change=pick_kwarg)
                         param_desc = ui.markdown(model["kwargs"][kwarg]["docstr"]).props("size=80")
 
-                        accept_param_button = ui.button(text="Accept Parameter", on_click=accept_param_button_callback)
+                        accept_param_button = ui.button(text="Accept Parameter",
+                                                        on_click=accept_param_button_callback).props("color=green")
 
                         param_type = model["kwargs"][kwarg]["type"]
                         param_input_field = create_input(model["name"], kwarg, param_type)
@@ -505,7 +528,7 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                     nonlocal param_desc
                     nonlocal param_input_field
                     nonlocal kwarg
-                    
+
                     param_desc.set_content(model["kwargs"][e.value]["docstr"])
                     param_desc.props("size=80")
                     param_type = model["kwargs"][e.value]["type"]
@@ -529,9 +552,9 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                         col_list = [x for x in self.state.df.columns if x in columns]
 
                     if len(col_list) <= 1:
-                        ui.notify("Select at least 2 columns.")
-                        return 
-                    
+                        ui.notify("Select at least 2 columns.", color="red")
+                        return
+
                     df_pass = self.state.df[col_list]
 
                     kwargs = model_kwargs[model["name"]]
@@ -545,7 +568,9 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
 
                                 for col_name in df_pass.columns:
                                     if not is_numeric_dtype(df_pass[col_name]):
-                                        ui.notify(f"Column {col_name} has type {df_pass[col_name].dtype} should be float or int.")
+                                        ui.notify(
+                                            f"Column {col_name} has type {df_pass[col_name].dtype} should be float or int.",
+                                            color="red")
                                 return
 
                             labels = ClusterModule.cluster(df_pass, method=model["name"], **passed_kw)
@@ -559,13 +584,14 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                 with ui.matplotlib(figsize=(10, 6)).figure as fig:
                                     ClusterModule.visualize(df_pass, labels, fig)
 
-                                ui.button("", icon="save", on_click=save_clustering)
+                                ui.button("", icon="save", on_click=save_clustering).props("color=blue")
 
                             with ui.row():
                                 pick_label_containder = ui.element()
                                 pick_label_containder.clear()
-                                
-                                with pick_label_containder, ui.card().classes("w-80"), ui.scroll_area():
+
+                                with pick_label_containder, ui.card().classes("w-80 center-card").style(
+                                        'background-color: #e0f7fa'), ui.scroll_area():
                                     def update_desc_table(e):
                                         label = e.value
 
@@ -574,76 +600,89 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                             description = ClusterModule.describe(df_pass, labels)[label]["stat"]
                                             description.insert(0, "Metric", description.index.tolist())
 
-                                            ui.table.from_pandas(description, title="Descriptive Statistics", pagination={"rowsPerPage": 10})
+                                            ui.table.from_pandas(description, title="Descriptive Statistics",
+                                                                 pagination={"rowsPerPage": 10})
 
-                                    ui.label("Descriptive Statistics")
+                                    ui.label("Descriptive Statistics").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
                                     picked_label = labels[0]
-                                    label_selector = ui.select(list(set(labels.tolist())), value=labels[0], on_change=update_desc_table)
-                                    ui.markdown("Select label of the cluster that you want to see descriptive statistics (count, mean, std, min, max, q1, q2, q3) for.")
+                                    label_selector = ui.select(list(set(labels.tolist())), value=labels[0],
+                                                               on_change=update_desc_table)
+                                    ui.markdown(
+                                        "Select label of the cluster that you want to see descriptive statistics (count, mean, std, min, max, q1, q2, q3) for.").props(
+                                        "color=green")
 
                                 table_containder = ui.element()
                                 table_containder.clear()
                                 with table_containder:
-
                                     description = ClusterModule.describe(df_pass, labels)[picked_label]["stat"]
                                     description.insert(0, "Metric", description.index.tolist())
 
-                                    ui.table.from_pandas(description, title="Descriptive Statistics", pagination={"rowsPerPage": 10})
+                                    ui.table.from_pandas(description, title="Descriptive Statistics",
+                                                         pagination={"rowsPerPage": 10})
 
                             davies_container.clear()
-                            with davies_container, ui.card().classes("w-80"), ui.scroll_area():
-                                ui.label("Davies-Bouldin Score")
+                            with davies_container, ui.card().classes("w-80 center-card").style(
+                                    'background-color: #e0f7fa'), ui.scroll_area():
+                                ui.label("Davies-Bouldin Score").style('color: #00796b; font-family: Arial, sans-serif')
 
                                 if len(np.unique(labels).tolist()) > 1:
                                     db_score = ClusterModule.evaluate(df_pass, labels, method='Davies-Bouldin')
-                                    ui.label(f"Score: {db_score:.2f}")
+                                    ui.label(f"Score: {db_score:.2f}").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
 
                                 else:
-                                    ui.label(f"Cannot calculate score for one cluster.")
+                                    ui.label(f"Cannot calculate score for one cluster.").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
 
                                 ui.markdown(ClusterModule.scores["Davies-Bouldin"]["docstr"])
 
                             silhouette_container.clear()
-                            with silhouette_container, ui.card().classes("w-80"), ui.scroll_area():
-                                ui.label("Silhouette Score")
+                            with silhouette_container, ui.card().classes("w-80 center-card").style(
+                                    'background-color: #e0f7fa'), ui.scroll_area():
+                                ui.label("Silhouette Score").style('color: #00796b; font-family: Arial, sans-serif')
 
                                 if len(np.unique(labels).tolist()) > 1:
                                     sil_score = ClusterModule.evaluate(df_pass, labels, method='Silhouette')
-                                    ui.label(f"Score: {sil_score:.2f}")
+                                    ui.label(f"Score: {sil_score:.2f}").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
 
                                 else:
-                                    ui.label(f"Cannot calculate score for one cluster.")
+                                    ui.label(f"Cannot calculate score for one cluster.").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
 
                                 ui.markdown(ClusterModule.scores["Silhouette"]["docstr"])
 
                             calinski_container.clear()
-                            with calinski_container, ui.card().classes("w-80"), ui.scroll_area():
-                                ui.label("Calinski-Harabasz Score")
+                            with calinski_container, ui.card().classes("w-80 center-card").style(
+                                    'background-color: #e0f7fa'), ui.scroll_area():
+                                ui.label("Calinski-Harabasz Score").style(
+                                    'color: #00796b; font-family: Arial, sans-serif')
 
                                 if len(np.unique(labels).tolist()) > 1:
                                     ch_score = ClusterModule.evaluate(df_pass, labels, method='Calinski-Harabasz')
-                                    ui.label(f"Score: {ch_score:.2f}")
+                                    ui.label(f"Score: {ch_score:.2f}").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
 
                                 else:
-                                    ui.label(f"Cannot calculate score for one cluster.")
+                                    ui.label(f"Cannot calculate score for one cluster.").style(
+                                        'color: #00796b; font-family: Arial, sans-serif')
 
                                 ui.markdown(ClusterModule.scores["Calinski-Harabasz"]["docstr"])
 
                             if model["name"] == "KMeans":
-                                
+
                                 silhouettes_container.clear()
                                 with silhouette_container:
                                     silouettes_measures = [0 for i in range(2, 15)]
                                     for i in range(len(silouettes_measures)):
-                                        
-                                        labels = ClusterModule.cluster(df_pass, method="KMeans", n_clusters=(i+2))
+                                        labels = ClusterModule.cluster(df_pass, method="KMeans", n_clusters=(i + 2))
                                         score = ClusterModule.evaluate(df_pass, labels, method='Silhouette')
                                         silouettes_measures[i] = score
-                                    
+
                                     X = [i for i in range(2, 15)]
 
                                     with ui.matplotlib(figsize=(10, 6)).figure as fig:
-                                        
                                         ax = fig.gca()
                                         ax.bar(X, silouettes_measures, color='blue')
                                         ax.set_xlabel('Number of Clusters')
@@ -653,7 +692,8 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                         ax.grid(axis='y', linestyle='--', alpha=0.7)
 
                             save_container.clear()
-                            with save_container, ui.card().classes("w-80"), ui.scroll_area():
+                            with save_container, ui.card().classes("w-80 center-card").style(
+                                    'background-color: #e0f7fa'), ui.scroll_area():
 
                                 def save_file():
                                     state = self.state
@@ -664,35 +704,36 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                                     original_df["Labels"] = labels
 
                                     original_df.to_csv(save_name.value, index=False, sep=";", decimal=",")
-                                    ui.notify("csv file has been saved")
+                                    ui.notify("csv file has been saved", color="green")
 
-                                ui.label("Save Clustering")
-                                save_button = ui.button("SAVE", on_click=save_file)
+                                ui.label("Save Clustering").style('color: #00796b; font-family: Arial, sans-serif')
+                                save_button = ui.button("SAVE", on_click=save_file).props("color=blue")
                                 save_name = ui.input(label=f'Enter filename', value="output.csv")
 
                     except:
-                        ui.notify("Couldn't cluster. Try imputing the data.")
+                        ui.notify("Couldn't cluster. Try imputing the data.", color="red")
                         return
 
                 # alg
                 choose_algorithm_container.clear()
-                with choose_algorithm_container, ui.card().classes("w-80"), ui.scroll_area():
+                with choose_algorithm_container, ui.card().classes("w-80 center-card").style(
+                        'background-color: #e0f7fa'), ui.scroll_area():
 
                     with ui.row():
-                        ui.button("Run", on_click=run_clustering)
-                        ui.label("Select algorithm")
+                        ui.button("Run", on_click=run_clustering).props("color=green")
+                        ui.label("Select algorithm").style('color: #00796b; font-family: Arial, sans-serif')
 
                     alg_selector = ui.select(model_keys, value=model_keys[0], on_change=change_algorithm)
                     model_desc = ui.markdown(model["docstr"]).props("size=80")
 
                 setup_alg_params()
 
-            ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back())
+            ui.button("", icon="chevron_left", on_click=lambda e: ui.navigate.back()).props("color=blue")
 
             if self.state.df is None:
-                ui.notify("Data has not been uploaded")
+                ui.notify("Data has not been uploaded", color="red")
                 return
-            
+
             with ui.row():
                 select_columns_container = ui.element()
                 choose_algorithm_container = ui.element()
@@ -710,7 +751,7 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
                 calinski_container = ui.element()
 
             save_container = ui.element()
-            
+
             select_columns()
             algorithm_setup()
 
@@ -721,4 +762,6 @@ For details see: https://journal.r-project.org/articles/RJ-2022-055/"""
         ui.run(reload=True, native=False, port=native.find_open_port(), title="App")
 
 
-App().mainloop()
+if __name__ in {"__main__", "__mp_main__"}:
+    app = App()
+    app.mainloop()
