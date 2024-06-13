@@ -32,7 +32,7 @@ class App:
         self.state = State(None, None)
 
     def main(self):
-        ui.add_head_html('<style>body { background-color: #e0f7e9; }</style>')
+        ui.add_head_html('<style>body { background-color: #003333; }</style>')
         def page_preprocess():
             def csv_file_handler(e: events.UploadEventArguments):
                 ui.notify(f"Uploaded {e.name}", color="blue")
@@ -228,8 +228,7 @@ class App:
 
         @ui.page("/pca")
         def page_pca():
-            ui.add_head_html('<style>body { background-color: #fff9c4; }</style>')
-
+            ui.add_head_html('<style>body { background-color: #003333; }</style>')
             columns: list[str] = []
             exclude: bool = False
             components: tuple[int, int] = (1, 2)
@@ -365,8 +364,7 @@ class App:
 
         @ui.page("/cluster")
         def page_cluster():
-            ui.add_head_html('<style>body { background-color: #fff9c4; }</style>')
-
+            ui.add_head_html('<style>body { background-color: #003333; }</style>')
             param_desc = None
             param_input_field = None
             kwarg = None
